@@ -1,3 +1,5 @@
+require 'active_support/core_ext/hash/indifferent_access'
+
 module Apotomo
   module TreeNode
     include Enumerable
@@ -8,7 +10,7 @@ module Apotomo
   
     def setup_tree_node(parent)
       @parent       = nil
-      @childrenHash = {}
+      @childrenHash = HashWithIndifferentAccess.new
       @children     = []
       
       parent.add_widget(self) if parent.kind_of? Widget # TODO: as long as cells needs parent_controller.
@@ -37,7 +39,7 @@ module Apotomo
     def remove!(child)
       @childrenHash.delete(child.name)
       @children.delete(child)
-      child.root! unless child == nil
+      # child.root! unless child == nil
       child
     end
 

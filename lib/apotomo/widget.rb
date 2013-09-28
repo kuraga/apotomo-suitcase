@@ -9,6 +9,7 @@ require 'apotomo/rails/view_helper'
 require 'apotomo/rails/controller_methods'  # FIXME.
 
 require 'apotomo/widget/tree_node'
+require 'apotomo/persistence'
 require 'apotomo/widget/event_methods'
 require 'apotomo/widget/javascript_methods'
 
@@ -55,6 +56,7 @@ module Apotomo
     attr_writer :visible
     
     include TreeNode
+    include Persistence::Freeze
     
     include Onfire
     
@@ -81,12 +83,20 @@ module Apotomo
       @options      = options
       @name         = id
       @visible      = true
+      @freeze       = true
       
       setup_tree_node(parent)
       
       run_hook :after_initialize, self
     end
     
+    def render_buffer
+      buffer = Apotomo::RenderBuffer.new(self)
+      yield buffer
+      root.page_updates << buffer.to_s
+      nil
+    end    
+
     def parent_controller
       # i hope we'll get rid of any parent_controller dependency, soon.
       root? ? @parent_controller : root.parent_controller
@@ -94,6 +104,22 @@ module Apotomo
     
     def visible?
       @visible
+    end
+    
+    def freeze?
+      @freeze
+    end
+
+    def freeze!
+      @freeze = true
+    end
+    
+    def unfreeze!
+      @freeze = false
+    end
+
+    def freezable_ivars
+      [ :@options ]
     end
     
     # Invokes +state+ and hopefully returns the rendered content.

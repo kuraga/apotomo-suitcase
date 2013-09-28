@@ -46,9 +46,18 @@ module Apotomo
       #   <div id="mouse">
       #     <p>I'm wrapped</p>
       #   </div>
-      def widget_div(options={}, &block)
-        options.reverse_merge!(:id => widget_id) 
-        content_tag(:div, options, &block)
+      def widget_div(*args, &block)
+        widget_tag(:div, *args, &block)
+      end
+
+      def widget_tag(tag, *args, &block)
+        options = args.extract_options!
+        html_options = options.reverse_merge(:id => args.blank? ? widget_id : args[0])
+        if block_given?
+          content_tag(tag, html_options, &block)
+        else
+          content_tag(tag, html_options) {}
+        end
       end
     end  
   end

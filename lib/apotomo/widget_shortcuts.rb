@@ -1,6 +1,44 @@
+require 'apotomo/persistence'
+
 module Apotomo
   # Create widget trees using the #widget DSL.
   module WidgetShortcuts
+    include Persistence::Thaw
+
+    module Naming
+      def class_name_for(prefix)  # TODO: use Cell.class_from_cell_name. 
+        "#{prefix}_widget".classify
+      end
+
+      def module_name_for(class_name) 
+        class_name.to_s.gsub(/Widget/, '')
+      end
+
+      def prefix_for(class_name) 
+        class_name.to_s.gsub(/Widget/, '').underscore
+      end
+
+      def module_nesting(module_name)
+        module_name_parts = module_name.to_s.split('::')
+        module_name_parts.length.downto(1).collect { |i| module_name_parts.first(i).join('::') }
+      end
+
+      def constant_for(prefix, base_parent)
+        prefix_class_name = class_name_for(prefix)
+
+        base_superclasses = base_parent.ancestors.select { |ancestor| ancestor < ApplicationWidget }
+        base_superclasses_modules_names = base_superclasses.collect { |base_superclass| module_name_for(base_superclass) }
+        base_superclasses_nestingmodules_names = base_superclasses_modules_names.collect { |base_superclass_module_name| module_nesting(base_superclass_module_name) }.flatten
+
+        (base_superclasses_modules_names + base_superclasses_nestingmodules_names).uniq.each do |base_class_name|
+          return base_class_name.constantize.qualified_const_get(prefix_class_name) rescue NameError
+        end
+        prefix_class_name.classify.constantize
+      end
+    end
+
+    include Naming
+
     # Shortcut for creating an instance of <tt>class_name+"_widget"</tt> named +id+. Yields self.
     # Note that this creates a proxy object, only. The actual widget is built not until you added 
     # it, e.g. using #<<.
@@ -41,15 +79,14 @@ module Apotomo
       end
       
       def build(parent)
-        widget = constant_for(@prefix).new(parent, @id, @options)
+        widget = constant_for(@prefix, parent.class).new(parent, @id, @options)
         @block.call(widget) if @block
         widget
       end
       
     private
-      def constant_for(class_name)  # TODO: use Cell.class_from_cell_name. 
-        "#{class_name}_widget".classify.constantize
-      end
+
+      include Naming
     end
     
     # Mixed into Widget.      

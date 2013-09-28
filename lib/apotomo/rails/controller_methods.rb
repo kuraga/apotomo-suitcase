@@ -1,4 +1,5 @@
 require 'apotomo/request_processor'
+require 'apotomo/persistence'
 
 module Apotomo
   module Rails
@@ -17,6 +18,7 @@ module Apotomo
     
     module ControllerMethods
       include WidgetShortcuts
+      include Persistence
       extend ActiveSupport::Concern
       
       included do
@@ -27,6 +29,8 @@ module Apotomo
         self.has_widgets_blocks = []
         
         helper ActionViewMethods
+
+        after_filter :apotomo_freeze
       end
       
       module ClassMethods
@@ -50,7 +54,7 @@ module Apotomo
         # happens once per request:
         options = {:js_framework   => Apotomo.js_framework}
         
-        @apotomo_request_processor = Apotomo::RequestProcessor.new(self, options, self.class.has_widgets_blocks)
+        @apotomo_request_processor = Apotomo::RequestProcessor.new(self, session, options, self.class.has_widgets_blocks)
       end
       
       def apotomo_root
@@ -93,6 +97,10 @@ module Apotomo
 var loc = document.location;
 with(window.parent) { setTimeout(function() { window.eval('#{escaped_script}'); window.loc && loc.replace('about:blank'); }, 1) }
 </script></body></html>", :content_type => 'text/html'
+      end
+        
+      def apotomo_freeze
+        apotomo_request_processor.freeze!
       end
     end
   end

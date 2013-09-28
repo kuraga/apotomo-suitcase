@@ -25,7 +25,7 @@ module Apotomo
     end
     
     
-    attr_writer :page_updates
+    attr_accessor :page_updates
     
     def page_updates
       @page_updates ||= []
@@ -97,7 +97,15 @@ module Apotomo
     #   def on_drop(event)
     #     if event[:area] == 59 
     def trigger(*args)
+      old_page_updates = root.page_updates.dup
+
+      root.page_updates = []
       fire(*args)
+      new_page_updates = root.page_updates.dup
+
+      root.page_updates = old_page_updates
+
+      new_page_updates.join("\n")
     end
     
     # Get all handlers from self for the passed event (overriding Onfire#local_event_handlers).
